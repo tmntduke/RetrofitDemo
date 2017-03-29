@@ -13,6 +13,7 @@ import com.google.gson.Gson;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import okhttp3.FormBody;
@@ -30,6 +31,9 @@ import retrofit2.Callback;
 import retrofit2.Retrofit;
 import retrofit2.adapter.rxjava.RxJavaCallAdapterFactory;
 import retrofit2.converter.gson.GsonConverterFactory;
+import rx.android.schedulers.AndroidSchedulers;
+import rx.functions.Action1;
+import rx.schedulers.Schedulers;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -62,6 +66,12 @@ public class MainActivity extends AppCompatActivity {
         okRequest();
 
         TextView textView = (TextView) findViewById(R.id.tv_text);
+        pick(textView);
+
+        requestForRx();
+    }
+
+    private void pick(TextView textView) {
         textView.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -70,8 +80,6 @@ public class MainActivity extends AppCompatActivity {
                 startActivityForResult(intent, 010);
             }
         });
-
-
     }
 
     @Override
@@ -220,6 +228,25 @@ public class MainActivity extends AppCompatActivity {
         }).start();
 
 
+    }
+
+    private void requestForRx() {
+        Retrofit retrofit = new Retrofit.Builder()
+                .baseUrl("http://192.168.1.2:8080/")
+                .addCallAdapterFactory(RxJavaCallAdapterFactory.create())
+                .addConverterFactory(GsonConverterFactory.create())
+                .build();
+
+        RequestNet net = retrofit.create(RequestNet.class);
+        net.getFile("admin", "1234")
+                .subscribeOn(Schedulers.newThread())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new Action1<List<FileInfo>>() {
+                    @Override
+                    public void call(List<FileInfo> files) {
+                        Log.i(TAG, "call: " + files.get(1).getName() + " path:" + files.get(2).getPath());
+                    }
+                });
     }
 
 }
